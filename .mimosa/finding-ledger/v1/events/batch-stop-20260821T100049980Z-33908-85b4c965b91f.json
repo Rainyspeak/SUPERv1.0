@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20260821T100049980Z-33908-85b4c965b91f",
+  "runId": "20260821T100049980Z-33908-85b4c965b91f",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "ba3f2565064c6f2447b53bcf163356c861079074",
+  "diffHash": "44b0a176de40b054c7e4441756477cc0e5cf8ba13c4d00ee01549fe62477917d",
+  "rulesVersion": "unavailable",
+  "sessionHash": "226701cfd827ae0c758b056796fe4f3d96ffba5f44f640f926ac68d4bdea9958",
+  "reportRef": ".mimosa/reports/task-review-sess_423f87e4-236c-4b63-9776-f71b749d9767-20260821T100049980Z-33908-85b4c965b91f.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "rviz_plugins/src/goal_tool.cpp",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "rviz_plugins/src/goal_tool.h",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-08-21T10:00:50.322Z"
+}

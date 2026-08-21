@@ -1,14 +1,14 @@
 {
   "schemaVersion": "mimosa-hook-status/v1",
-  "recordedAt": "2026-08-21T06:15:54.637Z",
+  "recordedAt": "2026-08-21T10:00:27.321Z",
   "sessionId": "sess_423f87e4-236c-4b63-9776-f71b749d9767",
   "event": "PostToolUse",
   "toolName": "Edit",
-  "file": "planner_ctrl/src/ctrl_v1.cpp",
+  "file": "rviz_plugins/package.xml",
   "outcome": "clear",
   "coverage": "complete",
   "findingCount": 0,
-  "durationMs": 11,
+  "durationMs": 5,
   "hostState": "hook_complete",
   "reportHint": ".mimosa/reports/"
 }
