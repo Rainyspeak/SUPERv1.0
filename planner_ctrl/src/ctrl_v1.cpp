@@ -78,7 +78,7 @@ void position_cb(const nav_msgs::Odometry::ConstPtr&msg)
 	tf::Quaternion quat;
 	tf::quaternionMsgToTF(msg->pose.pose.orientation, quat);
 	double roll,pitch,yaw;
-    tf::Matrix3x3(quat).getRPY(roll,pitch,yaw);
+  tf::Matrix3x3(quat).getRPY(roll,pitch,yaw);
 	current_yaw = yaw;
 }
 
@@ -88,7 +88,7 @@ void twist_planner_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg)//ego
 {
 	
     receive = true;
-	ego = *msg;
+	  ego = *msg;
     ego_pos_x = ego.position.x;
     ego_pos_y = ego.position.y;
     ego_pos_z = ego.position.z;
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 	("/planner_cmd", 10, twist_planner_cb);//订阅planner的规划指令话题的
 
 	ros::Subscriber position_sub=nh.subscribe<nav_msgs::Odometry>
-    ("/mavros/local_position/odom",10, position_cb);
+  ("/mavros/local_position/odom",10, position_cb);
 
    ros::Rate rate(kControlRate); //控制频率尽可能高点，大于30hz
 	
