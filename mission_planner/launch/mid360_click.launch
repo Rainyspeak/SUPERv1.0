@@ -1,0 +1,26 @@
+<launch>
+
+
+  <arg name="start_rviz" default="true"/>
+  <arg name="rviz_config" default="$(find super_planner)/rviz/mid360.rviz"/>
+
+  <!-- 1. SUPER 规划器。话题/预处理/动力学参数见 super_planner/config/mid360_real.yaml：
+       - 订阅 /Odometry 与 /cloud_registered（点云入口内完成裁机体 + 降采样）
+       - 目标来自 /goal（rviz_plugins/Goal3DTool 3D 打点，与原版一致）
+       - 以 100Hz 向 /planner_cmd 发布 quadrotor_msgs/PositionCommand（无需 traj_server） -->
+  <node pkg="super_planner" name="fsm_node" type="fsm_node" output="screen">
+    <param name="config_name" value="mid360_real.yaml" type="string"/>
+  </node>
+
+
+  <!-- 3. TF：ROG-Map 可视化用 world 系，FAST-LIO 点云在 camera_init 系，二者对齐；
+       ROG-Map 自身会根据里程计发布 world -> drone -->
+  <node pkg="tf" type="static_transform_publisher" name="world_to_camera_init"
+      args="0 0 0 0 0 0 world camera_init 100"/>
+
+  <node pkg="tf" type="static_transform_publisher" name="body_to_base_link"
+      args="0 0 0 0 0 0 body base_link 100"/>
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)"
+      output="log" if="$(arg start_rviz)"/>
+</launch>
