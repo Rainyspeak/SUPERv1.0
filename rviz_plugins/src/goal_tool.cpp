@@ -39,6 +39,11 @@
 namespace rviz
 {
 
+// Workaround: some GCC toolchains (arm64) fail to parse the qualified name
+// geometry_msgs::PoseStamped in explicit template-argument position, while
+// accepting it in ordinary declarations. Alias it to a plain identifier.
+using GoalPoseStamped = geometry_msgs::PoseStamped;
+
 Goal3DTool::Goal3DTool()
 {
   shortcut_key_ = 'g';
@@ -60,7 +65,7 @@ void Goal3DTool::onInitialize()
 
 void Goal3DTool::updateTopic()
 {
-  pub_goal_ = nh_.advertise<geometry_msgs/PoseStamped>(topic_property_->getStdString(), 1);
+  pub_goal_ = nh_.advertise<GoalPoseStamped>(topic_property_->getStdString(), 1);
 }
 
 void Goal3DTool::onPoseSet(double x, double y, double z, double theta)
@@ -70,7 +75,7 @@ void Goal3DTool::onPoseSet(double x, double y, double z, double theta)
   tf::Quaternion quat;
   quat.setRPY(0.0, 0.0, theta);
   tf::Stamped<tf::Pose> p = tf::Stamped<tf::Pose>(tf::Pose(quat, tf::Point(x, y, z)), ros::Time::now(), fixed_frame);
-  geometry_msgs::PoseStamped goal;
+  GoalPoseStamped goal;
   tf::poseStampedTFToMsg(p, goal);
   ROS_INFO("Setting goal: Frame:%s, Position(%.3f, %.3f, %.3f), Orientation(%.3f, %.3f, %.3f, %.3f) = Angle: %.3f\n", fixed_frame.c_str(),
            goal.pose.position.x, goal.pose.position.y, goal.pose.position.z,
