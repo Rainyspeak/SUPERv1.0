@@ -142,10 +142,10 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(ctrl_v1 src/ctrl_v1.cpp)
-add_executable(ctrl_ego_waypoints src/ctrl_ego_waypoints.cpp)
-add_dependencies(ctrl_v1 ${catkin_EXPORTED_TARGETS})
-add_dependencies(ctrl_ego_waypoints ${catkin_EXPORTED_TARGETS})
+add_executable(ctrl_super_v1 src/ctrl_super_v1.cpp)
+add_executable(ctrl_super_waypoints src/ctrl_super_waypoints.cpp)
+add_dependencies(ctrl_super_v1 ${catkin_EXPORTED_TARGETS})
+add_dependencies(ctrl_super_waypoints ${catkin_EXPORTED_TARGETS})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -158,11 +158,11 @@ add_dependencies(ctrl_ego_waypoints ${catkin_EXPORTED_TARGETS})
 ##add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
- target_link_libraries(ctrl_v1
-   ${catkin_LIBRARIES}
+target_link_libraries(ctrl_super_v1
+  ${catkin_LIBRARIES}
 )
 
-target_link_libraries(ctrl_ego_waypoints
+target_link_libraries(ctrl_super_waypoints
   ${catkin_LIBRARIES}
 )
 

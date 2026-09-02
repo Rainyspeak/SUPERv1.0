@@ -1,4 +1,4 @@
-goal_pub_topic: "/planning/click_goal"
+goal_pub_topic: "/goal"
 odom_topic: "/lidar_slam/odom"
 # odom_topic: "/mavros/local_position/odom"
 # 0 for RVIZ and; 1 for Mavros; 2 for constant time

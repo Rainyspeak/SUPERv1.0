@@ -16,12 +16,12 @@
 namespace
 {
 constexpr unsigned short kPositionControl = 0b100111111000;   // position + yaw
-constexpr unsigned short kTrajectoryControl = 0b100111000000; // position + velocity + yaw
+constexpr unsigned short kTrajectoryControl = 0b001000000000; // position + velocity + acceleration + yaw + yaw_rate
 constexpr double kControlRate = 50.0;
 
 mavros_msgs::State current_state;
 mavros_msgs::PositionTarget current_goal;
-quadrotor_msgs::PositionCommand ego_command;
+quadrotor_msgs::PositionCommand super_command;
 
 bool odom_received = false;
 bool trajectory_received = false;
@@ -73,14 +73,14 @@ void trajectoryCallback(const quadrotor_msgs::PositionCommand::ConstPtr &msg)
   trajectory_received = true;
   last_trajectory_time = ros::Time::now();
   timeout_hold_active = false;
-  ego_command = *msg;
+  super_command = *msg;
 
   const int trajectory_id = static_cast<int>(msg->trajectory_id);
   if (trajectory_id != previous_trajectory_id)
   {
     previous_trajectory_id = trajectory_id;
     trajectory_completed = false;
-    ROS_INFO("开始跟踪EGO局部B样条，trajectory_id=%d", trajectory_id);
+    ROS_INFO("开始跟踪SUPER局部轨迹，trajectory_id=%d", trajectory_id);
   }
 
   if (msg->trajectory_flag == quadrotor_msgs::PositionCommand::TRAJECTORY_STATUS_COMPLETED)
@@ -92,7 +92,7 @@ void trajectoryCallback(const quadrotor_msgs::PositionCommand::ConstPtr &msg)
     if (!trajectory_completed)
     {
       trajectory_completed = true;
-      ROS_INFO("EGO最终B样条执行完成，切换终点悬停：(%.2f, %.2f, %.2f)",
+      ROS_INFO("SUPER轨迹执行完成，切换终点悬停：(%.2f, %.2f, %.2f)",
                terminal_x, terminal_y, terminal_z);
     }
   }
@@ -136,27 +136,27 @@ void setPositionHold(double x, double y, double z, double yaw)
 
 void setTrajectoryCommand()
 {
-  double vx = ego_command.velocity.x;
-  double vy = ego_command.velocity.y;
-  double vz = ego_command.velocity.z;
+  double vx = super_command.velocity.x;
+  double vy = super_command.velocity.y;
+  double vz = super_command.velocity.z;
   limitVelocityNorm(vx, vy, vz);
 
   current_goal.coordinate_frame = mavros_msgs::PositionTarget::FRAME_LOCAL_NED;
   current_goal.header.stamp = ros::Time::now();
   current_goal.type_mask = kTrajectoryControl;
-  current_goal.position.x = ego_command.position.x;
-  current_goal.position.y = ego_command.position.y;
-  current_goal.position.z = ego_command.position.z;
+  current_goal.position.x = super_command.position.x;
+  current_goal.position.y = super_command.position.y;
+  current_goal.position.z = super_command.position.z;
   current_goal.velocity.x = vx;
   current_goal.velocity.y = vy;
   current_goal.velocity.z = vz;
-  current_goal.acceleration_or_force.x = 0.0;
-  current_goal.acceleration_or_force.y = 0.0;
-  current_goal.acceleration_or_force.z = 0.0;
-  current_goal.yaw = ego_command.yaw;
-  current_goal.yaw_rate = 0.0;
+  current_goal.acceleration_or_force.x = super_command.acceleration.x;
+  current_goal.acceleration_or_force.y = super_command.acceleration.y;
+  current_goal.acceleration_or_force.z = super_command.acceleration.z;
+  current_goal.yaw = super_command.yaw;
+  current_goal.yaw_rate = super_command.yaw_dot;
 
-  ROS_INFO_THROTTLE(0.5, "EGO预设航点轨迹速度：vel_xyz=%.2f",
+  ROS_INFO_THROTTLE(0.5, "SUPER预设航点轨迹速度：vel_xyz=%.2f",
                     std::sqrt(vx * vx + vy * vy + vz * vz));
 }
 
@@ -171,13 +171,13 @@ void setTimeoutHold()
     timeout_hold_active = true;
   }
   setPositionHold(timeout_x, timeout_y, timeout_z, timeout_yaw);
-  ROS_ERROR_THROTTLE(1.0, "EGO轨迹指令超时，冻结当前位置保持");
+  ROS_ERROR_THROTTLE(1.0, "SUPER轨迹指令超时，冻结当前位置保持");
 }
 } // namespace
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "ctrl_ego_waypoints");
+  ros::init(argc, argv, "ctrl_super_waypoints");
   ros::NodeHandle nh;
   ros::NodeHandle pnh("~");
 
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
   ros::Publisher setpoint_pub =
       nh.advertise<mavros_msgs::PositionTarget>("/mavros/setpoint_raw/local", 1);
   ros::Publisher preset_start_pub =
-      nh.advertise<std_msgs::Empty>("/ego_preset_start", 1, true);
+      nh.advertise<std_msgs::Empty>("/super_preset_start", 1, true);
   ros::ServiceClient arming_client =
       nh.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
   ros::ServiceClient set_mode_client =
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
       last_request = ros::Time::now();
     }
 
-    // Generate the EGO preset path only after a real stable takeoff hover.
+    // Generate the SUPER preset path only after a real stable takeoff hover.
     // Otherwise the B-spline clock would run during OFFBOARD/arming/takeoff.
     if (!preset_start_sent && odom_received && current_state.armed &&
         current_state.mode == "OFFBOARD")
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
         {
           preset_start_pub.publish(std_msgs::Empty());
           preset_start_sent = true;
-          ROS_INFO("Stable takeoff hover for %.2f s; starting EGO preset mission",
+          ROS_INFO("Stable takeoff hover for %.2f s; starting SUPER preset mission",
                    takeoff_hover_time);
         }
       }
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
     {
       setPositionHold(0.0, 0.0, takeoff_height, 0.0);
       if (!odom_received)
-        ROS_WARN_THROTTLE(1.0, "等待MAVROS里程计，不执行EGO预设航点轨迹");
+        ROS_WARN_THROTTLE(1.0, "等待MAVROS里程计，不执行SUPER预设航点轨迹");
     }
     else if (!trajectoryFresh())
     {
@@ -293,7 +293,7 @@ int main(int argc, char **argv)
     }
     else if (trajectory_completed)
     {
-      // Preset-waypoint controller keeps the original final-B-spline hold.
+      // Preset-waypoint controller keeps the original final trajectory hold.
       setPositionHold(terminal_x, terminal_y, terminal_z, terminal_yaw);
       ROS_INFO_THROTTLE(2.0, "最终航点悬停：(%.2f, %.2f, %.2f)",
                         terminal_x, terminal_y, terminal_z);

@@ -16,9 +16,9 @@
 
 #define VELOCITY2D_CONTROL 0b101111000111 //设置好对应的掩码，从右往左依次对应PX/PY/PZ/VX/VY/VZ/AX/AY/AZ/FORCE/YAW/YAW-RATE
 #define POSITION_CONTROL 0b100111111000   //位置起飞：使用PX/PY/PZ/YAW
-#define PLANNER_CONTROL 0b100111000000 //轨迹跟踪：使用位置、速度和YAW（加速度位被忽略）
+#define PLANNER_CONTROL 0b001000000000    //轨迹跟踪：使用位置、速度、加速度、YAW、YAW_RATE（0=使用，1=忽略）
 
-unsigned short velocity_mask = VELOCITY2D_CONTROL;    
+unsigned short velocity_mask = VELOCITY2D_CONTROL;
 unsigned short position_mask = POSITION_CONTROL;
 
 float takeoff_height = 1.0f; //全局起飞高度（米）
@@ -33,7 +33,7 @@ float position_x, position_y, position_z, current_yaw;
 float current_vel_x, current_vel_y, current_vel_z;
 float hold_position_x, hold_position_y, hold_position_z, hold_yaw;
 bool odom_received = false;
-float ego_pos_x, ego_pos_y, ego_pos_z, ego_vel_x, ego_vel_y, ego_vel_z, ego_a_x, ego_a_y, ego_a_z, ego_yaw, ego_yaw_rate; //EGO planner information has position velocity acceleration yaw yaw_dot
+float super_pos_x, super_pos_y, super_pos_z, super_vel_x, super_vel_y, super_vel_z, super_a_x, super_a_y, super_a_z, super_yaw, super_yaw_rate;
 bool receive = false;//触发轨迹的条件判断
 float pi = 3.14159265;
 
@@ -56,7 +56,7 @@ void limitVelocityNorm(double &vx, double &vy, double &vz, double max_speed)
     vz *= scale;
   }
 }
-} 
+}
 
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
 	current_state = *msg;
@@ -82,24 +82,23 @@ void position_cb(const nav_msgs::Odometry::ConstPtr&msg)
 	current_yaw = yaw;
 }
 
-//读取ego里的位置速度加速度yaw和yaw-dot信息，
-quadrotor_msgs::PositionCommand ego;
-void twist_planner_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg)//ego的回调函数
+//读取SUPER规划器的位置速度加速度yaw和yaw_rate信息
+quadrotor_msgs::PositionCommand super_cmd;
+void super_planner_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg)
 {
-	
     receive = true;
-	  ego = *msg;
-    ego_pos_x = ego.position.x;
-    ego_pos_y = ego.position.y;
-    ego_pos_z = ego.position.z;
-    ego_vel_x = ego.velocity.x;
-    ego_vel_y = ego.velocity.y;
-    ego_vel_z = ego.velocity.z;
-    ego_a_x = ego.acceleration.x;
-    ego_a_y = ego.acceleration.y;
-    ego_a_z = ego.acceleration.z;
-    ego_yaw = ego.yaw;
-    ego_yaw_rate = ego.yaw_dot;
+	  super_cmd = *msg;
+    super_pos_x = super_cmd.position.x;
+    super_pos_y = super_cmd.position.y;
+    super_pos_z = super_cmd.position.z;
+    super_vel_x = super_cmd.velocity.x;
+    super_vel_y = super_cmd.velocity.y;
+    super_vel_z = super_cmd.velocity.z;
+    super_a_x = super_cmd.acceleration.x;
+    super_a_y = super_cmd.acceleration.y;
+    super_a_z = super_cmd.acceleration.z;
+    super_yaw = super_cmd.yaw;
+    super_yaw_rate = super_cmd.yaw_dot;
 }
 
 void Position_Hold()
@@ -142,7 +141,7 @@ void take_off(ros::Publisher &local_pos_pub,ros::ServiceClient &set_mode_client,
 
     local_pos_pub.publish(current_goal);
     ros::spinOnce();
-    rate.sleep(); 
+    rate.sleep();
   }
 
   while (ros::ok())
@@ -196,22 +195,27 @@ void Planner_Control()
   current_goal.header.stamp = ros::Time::now();
   current_goal.type_mask = PLANNER_CONTROL;
 
-  current_goal.position.x = ego_pos_x;
-  current_goal.position.y = ego_pos_y;
-  current_goal.position.z = ego_pos_z;
+  current_goal.position.x = super_pos_x;
+  current_goal.position.y = super_pos_y;
+  current_goal.position.z = super_pos_z;
 
-  double velocity_x = ego_vel_x;
-  double velocity_y = ego_vel_y;
-  double velocity_z = ego_vel_z;
+  double velocity_x = super_vel_x;
+  double velocity_y = super_vel_y;
+  double velocity_z = super_vel_z;
   limitVelocityNorm(velocity_x, velocity_y, velocity_z, kSpeedLimit);
   current_goal.velocity.x = velocity_x;
   current_goal.velocity.y = velocity_y;
   current_goal.velocity.z = velocity_z;
 
-  current_goal.yaw = ego_yaw;
-  current_goal.yaw_rate = 0.0;
+  // 添加加速度前馈，提升轨迹跟踪精度
+  current_goal.acceleration_or_force.x = super_a_x;
+  current_goal.acceleration_or_force.y = super_a_y;
+  current_goal.acceleration_or_force.z = super_a_z;
 
-//   ROS_INFO_THROTTLE(0.5, "EGO trajectory speed: vel_xyz = %.2f",
+  current_goal.yaw = super_yaw;
+  current_goal.yaw_rate = super_yaw_rate; // 使用规划器提供的 yaw_rate
+
+//   ROS_INFO_THROTTLE(0.5, "SUPER trajectory speed: vel_xyz = %.2f",
 //                     std::sqrt(std::pow(current_goal.velocity.x, 2) +
 //                               std::pow(current_goal.velocity.y, 2) +
 //                               std::pow(current_goal.velocity.z, 2)));
@@ -219,15 +223,15 @@ void Planner_Control()
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "cxr_egoctrl_v1");
+	ros::init(argc, argv, "ctrl_super_v1");
 	setlocale(LC_ALL,"");
 	ros::NodeHandle nh;
 	ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
 	("/mavros/state", 10, state_cb);//读取飞控状态的话题
-  
+
 	ros::Publisher local_pos_pub = nh.advertise<mavros_msgs::PositionTarget>
 	("/mavros/setpoint_raw/local", 1); //这个话题很重要，可以控制无人机的位置速度加速度和yaw以及yaw-rate，里面有个掩码选择，需要注意
-	
+
 	ros::service::waitForService("/mavros/cmd/arming");
 	ros::service::waitForService("/mavros/set_mode");
 
@@ -235,15 +239,15 @@ int main(int argc, char **argv)
 	("/mavros/cmd/arming");//解锁飞机的服务端
 	ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
 	("/mavros/set_mode");//设置飞机飞行模式的服务端
-	
+
 	ros::Subscriber twist_sub = nh.subscribe<quadrotor_msgs::PositionCommand>
-	("/planner_cmd", 10, twist_planner_cb);//订阅planner的规划指令话题的
+	("/planner_cmd", 10, super_planner_cb);//订阅planner的规划指令话题的
 
 	ros::Subscriber position_sub=nh.subscribe<nav_msgs::Odometry>
   ("/mavros/local_position/odom",10, position_cb);
 
    ros::Rate rate(kControlRate); //控制频率尽可能高点，大于30hz
-	
+
 	take_off(local_pos_pub, set_mode_client, arming_client, rate);
 
 	while(ros::ok())

@@ -1,3 +1,0 @@
-<launch>
-  <node pkg="planner_ctrl" name="ctrl_v1" type="ctrl_v1" output="screen"/>
-</launch>
