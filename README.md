@@ -100,8 +100,8 @@ SUPER serves as the flight platform and navigation system in the video demonstra
 Install dependencies
 
 ```bash
-# for MARSIM example
-sudo apt-get install libglfw3-dev libglew-dev libncurses5-dev libncursesw5-dev
+# ncurses for the log tools (read_replan_log / traj_opt_tuning)
+sudo apt-get install libncurses5-dev libncursesw5-dev
 # Eigen [version testd: 3.3.7-2] and soft link 
 sudo apt-get install libeigen3-dev       
 sudo ln -s /usr/include/eigen3/Eigen /usr/include/Eigen
@@ -140,30 +140,30 @@ cd ..
 catkin_make -DBUILD_TYPE=Release
 ```
 
-To test, use one of the following commands:
+This fork targets **real-drone deployment** (the MARSIM simulation stack has been removed). On the vehicle, FAST-LIO2 provides `/Odometry` and `/cloud_registered`, and PX4 runs with mavros.
 
-1. **High-Speed Navigation**
-
-```bash
-cd ${PATH-TO-WS}
-source devel/setup.bash
-roslaunch mission_planner benchmark_high_speed.launch
-```
-
-2. **Agile Flight in Dense Environments**
+1. **Planner** (subscribes `/Odometry` + `/cloud_registered`, goal from `/goal`, publishes `quadrotor_msgs/PositionCommand` on `/planner_cmd` at 100 Hz):
 
 ```bash
 cd ${PATH-TO-WS}
 source devel/setup.bash
-roslaunch mission_planner benchmark_dense.launch
+roslaunch super_planner mid360_click.launch
 ```
 
-3. **Click and Go Demo**
+In RViz, use the `3D Goal` tool (`rviz_plugins/Goal3DTool`, hotkey `G`) to set a goal.
 
+2. **Position controller** (tracks `/planner_cmd` and commands the FCU via mavros):
+
+```bash
+roslaunch planner_ctrl ctrl_super_v1.launch
 ```
-roslaunch mission_planner click_demo.launch 
+
+3. **Waypoint missions** (optional, publishes goals to `/goal`; see `mission_planner/config/waypoint.yaml`):
+
+```bash
+rosrun mission_planner waypoint_mission _data_name:=your_waypoints.txt
 ```
-In the click demo, press `G` to enable the `2D Goal Pose` plugin, then click a position in RViz to set the goal.
+
 ## 2.3 ROS2
 
 
@@ -175,46 +175,13 @@ colcon build --symlink-install
 # add to debug:  --event-handlers console_direct+ 
 ```
 
-To test, run:
-
-1. **High-speed Navigation**
-
-```bash
-cd ${PATH-TO-WS}
-source install/local_setup.bash
-ros2 launch mission_planner benchmark_high_speed.launch.py
-```
-
-2. **Agile flights in dense enviroment**
-
-```bash
-cd ${PATH-TO-WS}
-source install/local_setup.bash
-ros2 launch mission_planner benchmark_dense.launch.py     
-```
-
-3. **Click demo**
-
-```
-ros2 launch mission_planner click_demo.launch.py
-```
+> Note: the previous ROS2 demo launches (`benchmark_*.launch.py`, `click_demo.launch.py`) were simulation-only and have been removed together with the simulator. Real-drone deployment is currently only tested on ROS1 Noetic.
 
 ### Real-world deployment
 
 A detailed guide for deploying SUPER on real-world hardware will be available soon. In the meantime, you can refer to [issue #5](https://github.com/hku-mars/SUPER/issues/5) for some helpful hints.
 
-## 2.4 Use Your Own Map
-
-SUPER allows users to load their own **.pcd** maps as simulation environments. To do so:
-
-1. Place your **.pcd** file in:
-   **[./mars_uav_sim/perfect_drone_sim/pcd/](./mars_uav_sim/perfect_drone_sim/pcd)**
-2. Modify the `pcd_name` parameter in the corresponding YAML file located at:
-   **[./mars_uav_sim/perfect_drone_sim/config](./mars_uav_sim/perfect_drone_sim/config)**
-
-This enables seamless integration of custom maps for simulation. 
-
-## 2.5 Logging System
+## 2.4 Logging System
 
 SUPER includes a built-in logging system that records each run automatically. Logs are saved in:
 
@@ -238,11 +205,11 @@ For advanced usage, refer to:
 
 We are actively working on improving the logging system, and updates will be available soon! 
 
-## 2.6 Tuning
+## 2.5 Tuning
 
 To maximize performance, parameter tuning is crucial. The current version of SUPER has a large number of parameters (maybe TOOOO MUCH), requiring careful adjustment. Users can refer to the provided examples for guidance. We plan to provide detailed tuning instructions soon. In the meantime, feedback and issue reports are welcome.
 
-## 2.7 Notable Known Issues
+## 2.6 Notable Known Issues
 * [#10]: When using SUPER with your own simulator (e.g., Gazebo) or a LiDAR odometry system other than FAST-LIO2, ensure that the input point cloud is provided in the world frame. ROG-Map does not utilize `frame_id` or `/tf` information and assumes by default that all input point clouds are in the world frame rather than the body frame.
 
 # 3 TODO
@@ -265,13 +232,11 @@ SUPER is built upon several outstanding open-source projects. We extend our grat
 
 * **[FAST_LIO](https://github.com/hku-mars/FAST_LIO)**, **[Swarm-LIO2](https://github.com/hku-mars/Swarm-LIO2)** and  **[LiDAR_IMU_Init](https://github.com/hku-mars/LiDAR_IMU_Init)**  for their excellent localization solutions.
 * **[ROG-Map](https://github.com/hku-mars/ROG-Map)** - A high-performance mapping framework that influenced our approach to map representation and optimization.
-* **[MARSIM](https://github.com/hku-mars/MARSIM)** - A simulation environment that played a key role in testing and evaluating our algorithms in virtual scenarios.
 * **[GCOPTER](https://github.com/ZJU-FAST-Lab/GCOPTER)** – A valuable resource that efficiently performs differentiable trajectory optimization and serves as the foundation of our trajectory optimization method.
 
   **[FIRI](https://github.com/ZJU-FAST-Lab/GCOPTER/blob/main/gcopter/include/gcopter/firi.hpp)** – An extremely efficient safe flight corridor generation method upon which our CIRI is built.
 * [**FASTER**](https://github.com/mit-acl/faster) - Introduces the initial concept of a two-trajectory optimization framework.
 * **[DecompUtil](https://github.com/sikang/DecompUtil)** - A convex decomposition tool that was instrumental in implementing our algorithms.
-* **[Mockamap](https://github.com/HKUST-Aerial-Robotics/mockamap)** - A simple ROS-based map generator that assisted in our development and testing.
 * [**Nxt-FC**](https://github.com/HKUST-Aerial-Robotics/Nxt-FC) – A compact yet powerful hardware platform for the PX4 flight controller.
 
 We sincerely appreciate the efforts of these communities in advancing robotics research.

@@ -14,5 +14,4 @@ odom_timeout: 0.1
 # goal publish dt (s), set to inf if the goal only need to pub once
 publish_dt: 99999.0
 # mission waypoints, must be in the same dimension
-#    waypoints_file_name: "a_working_waypoints.txt"
-#waypoints_file_name: "benchmark_dense.txt"
+#    waypoints_file_name: "your_waypoints.txt"
