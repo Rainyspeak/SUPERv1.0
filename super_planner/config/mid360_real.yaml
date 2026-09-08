@@ -20,6 +20,23 @@ fsm:
   mpc_cmd_topic: "/planning_cmd/poly_traj"
   timer_en: true
 
+# =====================================================================
+# 航点任务（已融合进 fsm_node，原 mission_planner 包移除）
+# waypoint_type:
+#   rviz - RViz "Publish Point" 工具在 /clicked_point 上打点收集航点，
+#          收满 waypoint_num 个自动起飞（<=0 时向 ~mission/trigger 发一条消息起飞）；
+#          飞行中继续点击追加到队尾；任务完成后再点击开始新一轮收集
+#   file - 从 waypoint_file 装载（每行 "x y z switch_dis"），等 ~mission/trigger 起飞
+# 进度话题: ~mission/state (std_msgs/Int32，当前航点序号，全部完成发 -1)
+# 可视化:   ~mission/waypoints (nav_msgs/Path, latched)、~mission/markers
+# =====================================================================
+mission:
+  enable: false
+  waypoint_type: "rviz"
+  waypoint_num: 0
+  switch_dis: 1.0
+  waypoint_file: ""
+
 super_planner:
   backup_traj_en: true
   detailed_log_en: false

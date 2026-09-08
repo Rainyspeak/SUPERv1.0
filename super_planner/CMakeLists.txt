@@ -18,9 +18,6 @@ add_definitions(-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\")
 string(TOUPPER $ENV{ROS_DISTRO} ROS_VERSION)
 message(STATUS "ROS version: ${ROS_VERSION}")
 
-message("Using ROS1")
-# add a marco for ros1
-add_definitions(-DUSE_ROS1)
 find_package(catkin REQUIRED COMPONENTS
         roscpp
         std_msgs
@@ -32,7 +29,6 @@ find_package(catkin REQUIRED COMPONENTS
         visualization_msgs
         message_filters
         rog_map
-        yaml-cpp
         tf
 )
 find_package(yaml-cpp REQUIRED)

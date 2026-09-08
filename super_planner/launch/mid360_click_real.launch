@@ -1,0 +1,45 @@
+<launch>
+
+
+  <arg name="start_rviz" default="true"/>
+  <arg name="rviz_config" default="$(find super_planner)/rviz/mid360.rviz"/>
+  <arg name="config_name" default="$(find super_planner)/config/mid360_real.yaml"/>
+  <arg name="odom_topic" default="/Odometry"/>
+  <arg name="cloud_topic" default="/cloud_registered"/>
+
+  <!-- Waypoint mission (merged from the former mission_planner package):
+       mission_waypoint_type:
+         rviz - collect waypoints with the RViz "Publish Point" tool (/clicked_point);
+               auto-start after mission_waypoint_num points (<=0: start on ~mission/trigger);
+               clicking during flight appends, clicking after DONE restarts collection
+         file - load mission_waypoint_file ("x y z switch_dis" per line), start on ~mission/trigger
+       Progress: ~mission/state (std_msgs/Int32, current waypoint index, -1 when finished) -->
+  <arg name="mission_enable" default="false"/>
+  <arg name="mission_waypoint_type" default="rviz"/>
+  <arg name="mission_waypoint_num" default="0"/>
+  <arg name="mission_switch_dis" default="1.0"/>
+  <arg name="mission_waypoint_file" default=""/>
+
+  <node pkg="tf" type="static_transform_publisher" name="world_to_camera_init"
+      args="0 0 0 0 0 0 world camera_init 100"/>
+
+  <node pkg="tf" type="static_transform_publisher" name="body_to_base_link"
+      args="0 0 0 0 0 0 body base_link 100"/>
+
+
+
+  <node pkg="super_planner" name="fsm_node" type="fsm_node" output="screen">
+    <param name="config_name" value="$(arg config_name)" type="string"/>
+    <param name="odom_topic" value="$(arg odom_topic)" type="string"/>
+    <param name="cloud_topic" value="$(arg cloud_topic)" type="string"/>
+    <param name="mission/enable" value="$(arg mission_enable)"/>
+    <param name="mission/waypoint_type" value="$(arg mission_waypoint_type)"/>
+    <param name="mission/waypoint_num" value="$(arg mission_waypoint_num)"/>
+    <param name="mission/switch_dis" value="$(arg mission_switch_dis)"/>
+    <param name="mission/waypoint_file" value="$(arg mission_waypoint_file)"/>
+  </node>
+
+  <node if="$(arg start_rviz)" pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)"
+      output="log" />
+
+</launch>

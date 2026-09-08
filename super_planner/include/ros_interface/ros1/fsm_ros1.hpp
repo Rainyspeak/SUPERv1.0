@@ -22,12 +22,11 @@
 */
 
 
-#ifdef USE_ROS1
-
 #ifndef SRC_FSM_ROS1_HPP
 #define SRC_FSM_ROS1_HPP
 
 #include "fsm/fsm.h"
+#include "mission/waypoint_manager.hpp"
 
 #include "ros/ros.h"
 #include "geometry_msgs/PoseStamped.h"
@@ -43,6 +42,7 @@ namespace fsm {
         ros::Subscriber goal_sub_;
         ros::Publisher cmd_pub, mpc_cmd_pub_, path_pub_;
         ros::Timer execution_timer_, replan_timer_, cmd_timer_;
+        mission::WaypointManager wp_mgr_;
         quadrotor_msgs::PositionCommand pid_cmd_;
         rog_map::ROGMapROS::Ptr map_ptr_;
         quadrotor_msgs::PositionCommand latest_cmd;
@@ -290,8 +290,31 @@ namespace fsm {
                 cmd_cnt++;
             }
 
-            if (cmd_cnt != 1) {
-                cout << YELLOW << " -- [Fsm] CMD INPUT ERROR." << RESET << endl;
+            // Waypoint mission: YAML provides the tuning defaults, launch params
+            // (mission/*) override the interface-level wiring.
+            mission::WaypointManager::Config mission_cfg;
+            mission_cfg.enable = cfg_.mission_enable;
+            mission_cfg.waypoint_type = cfg_.mission_waypoint_type;
+            mission_cfg.waypoint_num = cfg_.mission_waypoint_num;
+            mission_cfg.switch_dis = cfg_.mission_switch_dis;
+            mission_cfg.waypoint_file = cfg_.mission_waypoint_file;
+            nh_.param("mission/enable", mission_cfg.enable, mission_cfg.enable);
+            nh_.param("mission/waypoint_type", mission_cfg.waypoint_type, mission_cfg.waypoint_type);
+            nh_.param("mission/waypoint_num", mission_cfg.waypoint_num, mission_cfg.waypoint_num);
+            nh_.param("mission/switch_dis", mission_cfg.switch_dis, mission_cfg.switch_dis);
+            nh_.param("mission/waypoint_file", mission_cfg.waypoint_file, mission_cfg.waypoint_file);
+            if (mission_cfg.waypoint_type == "none") {
+                mission_cfg.enable = false;
+            }
+            if (mission_cfg.enable) {
+                cmd_cnt++;
+                wp_mgr_.init(nh_, mission_cfg,
+                             [this](const Vec3f &p, const Quatf &q) { setGoalPosiAndYaw(p, q); });
+            }
+
+            if (cmd_cnt < 1) {
+                cout << YELLOW << " -- [Fsm] CMD INPUT ERROR: no goal source "
+                                  "(click_goal_en or mission/enable)." << RESET << endl;
                 exit(0);
             }
 
@@ -352,6 +375,12 @@ namespace fsm {
         }
 
         void mainFsmTimerCallback(const ros::TimerEvent &event) {
+            if (wp_mgr_.enabled()) {
+                // Note: dispatch on rcv alone, NOT on machine_state_: the fsm leaves
+                // INIT only after a goal is set (started_), so gating on non-INIT
+                // would deadlock the first waypoint.
+                wp_mgr_.onTick(robot_state_.p, robot_state_.rcv);
+            }
             callMainFsmOnce();
         }
 
@@ -359,5 +388,3 @@ namespace fsm {
 }
 
 #endif //SRC_FSM_ROS1_HPP
-
-#endif

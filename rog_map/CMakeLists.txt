@@ -22,9 +22,6 @@ add_definitions(-DORIGIN_AT_CORNER)
 string(TOUPPER $ENV{ROS_DISTRO} ROS_VERSION)
 message(STATUS "ROS version: ${ROS_VERSION}")
 
-message("Using ROS1")
-# add a marco for ros1
-add_definitions(-DUSE_ROS1)
 find_package(catkin REQUIRED COMPONENTS
         roscpp
         std_msgs

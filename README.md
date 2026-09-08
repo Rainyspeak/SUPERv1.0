@@ -111,22 +111,13 @@ sudo apt-get install libdw-dev
 sudo apt-get install ros-${YOUR-ROS-VERSION}-mavros* ros-${YOUR-ROS-VERSION}-pcl* ros-${YOUR-ROS-VERSION}-rosfmt
 ```
 
-Before building the code, select the appropriate ROS version:
-
-```bash
-# Use ROS1-noetic
-bash ${PATH-TO-SUPER}/SUPER/scripts/select_ros_version.sh ROS1
-# Use ROS2
-bash ${PATH-TO-SUPER}/SUPER/scripts/select_ros_version.sh ROS2
-```
+`quadrotor_msgs`（`PositionCommand` 等消息）已内置在 [`utils/`](./utils/README.md) 目录，无需额外安装。
 
 Tested Environments:
 
 * Ubuntu 20.04 + ROS1 Noetic
-* Ubuntu 20.04 + ROS2 foxy
-* ...
 
-Currently, **ROS1 Noetic** serves as the **Tier 1** supported platform for SUPER. The ROS2 version is still under development and may be unstable, with some issues such as imperfect visualization. We are actively working on improvements.
+**ROS1 Noetic** is the only supported platform (ROS2 support has been removed from this fork).
 
 ### Known Build issues
 
@@ -158,30 +149,19 @@ In RViz, use the `3D Goal` tool (`rviz_plugins/Goal3DTool`, hotkey `G`) to set a
 roslaunch planner_ctrl ctrl_super_v1.launch
 ```
 
-3. **Waypoint missions** (optional, publishes goals to `/goal`; see `mission_planner/config/waypoint.yaml`):
+3. **Waypoint missions (RViz 打点飞行)** — merged into `fsm_node` (the former `mission_planner` package was removed):
 
 ```bash
-rosrun mission_planner waypoint_mission _data_name:=your_waypoints.txt
+roslaunch super_planner mid360_click_real.launch mission_enable:=true mission_waypoint_num:=5
 ```
 
-## 2.3 ROS2
-
-
-```bash
-mkdir -p super_ws/src && cd super_ws/src
-git clone https://github.com/hku-mars/SUPER.git
-cd ..
-colcon build --symlink-install
-# add to debug:  --event-handlers console_direct+ 
-```
-
-> Note: the previous ROS2 demo launches (`benchmark_*.launch.py`, `click_demo.launch.py`) were simulation-only and have been removed together with the simulator. Real-drone deployment is currently only tested on ROS1 Noetic.
+Use the RViz **Publish Point** tool to click waypoints on `/clicked_point`; the drone flies through them in order (switching within `mission/switch_dis`, hovering at the last one). With `mission_waypoint_num<=0`, start by `rostopic pub /fsm_node/mission/trigger geometry_msgs/PoseStamped "{}" -1`. Clicks during flight append to the queue. Progress: `/fsm_node/mission/state` (current index, `-1` when done). File-based missions: `mission_waypoint_type:=file mission_waypoint_file:=/path/to/waypoints.txt` (one `x y z switch_dis` per line).
 
 ### Real-world deployment
 
 A detailed guide for deploying SUPER on real-world hardware will be available soon. In the meantime, you can refer to [issue #5](https://github.com/hku-mars/SUPER/issues/5) for some helpful hints.
 
-## 2.4 Logging System
+## 2.3 Logging System
 
 SUPER includes a built-in logging system that records each run automatically. Logs are saved in:
 
@@ -205,11 +185,11 @@ For advanced usage, refer to:
 
 We are actively working on improving the logging system, and updates will be available soon! 
 
-## 2.5 Tuning
+## 2.4 Tuning
 
 To maximize performance, parameter tuning is crucial. The current version of SUPER has a large number of parameters (maybe TOOOO MUCH), requiring careful adjustment. Users can refer to the provided examples for guidance. We plan to provide detailed tuning instructions soon. In the meantime, feedback and issue reports are welcome.
 
-## 2.6 Notable Known Issues
+## 2.5 Notable Known Issues
 * [#10]: When using SUPER with your own simulator (e.g., Gazebo) or a LiDAR odometry system other than FAST-LIO2, ensure that the input point cloud is provided in the world frame. ROG-Map does not utilize `frame_id` or `/tf` information and assumes by default that all input point clouds are in the world frame rather than the body frame.
 
 # 3 TODO
@@ -219,7 +199,7 @@ To maximize performance, parameter tuning is crucial. The current version of SUP
 
   - **CIRI** - Generates safe flight corridors in C-space.
 
-  - **ROG-Map** - An efficient occupancy grid map supporting both ROS1 and ROS2.
+  - **ROG-Map** - An efficient robocentric occupancy grid map.
 * Introduce the hardware components of SUPER.
 * Detail the control module of SUPER.
 * Develop a tutorial.

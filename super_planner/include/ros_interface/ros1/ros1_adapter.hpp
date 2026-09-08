@@ -22,7 +22,6 @@
 */
 
 
-#ifdef USE_ROS1
 #ifndef SRC_ROS1_ADAPTER_HPP
 #define SRC_ROS1_ADAPTER_HPP
 
@@ -762,5 +761,4 @@ namespace ros_interface {
 
 }
 
-#endif //SRC_ROS1_VISUALIZER_HPP
-#endif
+#endif //SRC_ROS1_ADAPTER_HPP

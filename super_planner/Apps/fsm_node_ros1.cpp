@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     if (nh.param("config_path", cfg_path, dft_cfg_path)) {
         cout << " -- [Fsm-Test] Load config from: " << cfg_path << endl;
     } else if(nh.param("config_name", cfg_name, dft_cfg_path)){
-        cfg_path = CONFIG_FILE_DIR(cfg_name);
+        cfg_path = (!cfg_name.empty() && cfg_name.front() == '/') ? cfg_name : CONFIG_FILE_DIR(cfg_name);
         cout << " -- [Fsm-Test] Load config by file name: " << cfg_name << endl;
     }
 

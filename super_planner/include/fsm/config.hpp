@@ -50,6 +50,13 @@ namespace fsm {
         string cmd_topic, mpc_cmd_topic, click_goal_topic;
         double yaw_dot_max{};
 
+        // Mission (waypoint) params, see mission/waypoint_manager.hpp
+        bool mission_enable{false};
+        string mission_waypoint_type;
+        int mission_waypoint_num{0};
+        double mission_switch_dis{1.0};
+        string mission_waypoint_file;
+
         Config() = default;
 
         Config(const std::string & cfg_path) {
@@ -64,6 +71,11 @@ namespace fsm {
             loader.LoadParam("fsm/mpc_cmd_topic", mpc_cmd_topic, string("/planning_cmd/mpc"));
             loader.LoadParam("fsm/click_goal_topic", click_goal_topic, string("/planning/click_goal_topic"));
 
+            loader.LoadParam("mission/enable", mission_enable, false);
+            loader.LoadParam("mission/waypoint_type", mission_waypoint_type, string("rviz"));
+            loader.LoadParam("mission/waypoint_num", mission_waypoint_num, 0);
+            loader.LoadParam("mission/switch_dis", mission_switch_dis, 1.0);
+            loader.LoadParam("mission/waypoint_file", mission_waypoint_file, string(""));
 
             loader.LoadParam("super_planner/yaw_dot_max", yaw_dot_max, 1.0, true);
             loader.LoadParam("super_planner/visualization_en", visualization_en, false, true);

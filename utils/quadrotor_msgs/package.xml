@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>quadrotor_msgs</name>
+  <version>0.0.0</version>
+  <description>Quadrotor message definitions (PositionCommand etc.), taken from hku-mars/SUPER (mars_quadrotor_msgs), ROS1 only.</description>
+  <maintainer email="todo@todo.todo">Kartik Mohta</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>nav_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+</package>
